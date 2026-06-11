@@ -1,0 +1,75 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  NODE_OPTIONS: --max-old-space-size=4096
+  AWS_REGION: eu-west-2
+  BAKEHOUSE_STACK_NAME: bakehouse-${{ github.actor }}
+
+jobs:
+  ci:
+    name: Build, Test, and Synthesize
+    runs-on: ubuntu-latest
+
+    environment:
+      name: production
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install project dependencies
+        run: ./install.sh
+
+   #   - name: Run tests
+   #     run: npm test
+
+  deploy:
+    name: Deploy CDK application
+    needs: ci
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    environment:
+      name: production
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install project dependencies
+        run: ./install.sh
+
+      - name: Configure AWS credentials using OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: eu-west-2
+
+      - name: Check AWS identity
+        run: aws sts get-caller-identity
+
+      - name: Deploy CDK stack
+        run: npx cdk deploy --all --require-approval never
