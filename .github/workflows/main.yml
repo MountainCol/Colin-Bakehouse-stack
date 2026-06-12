@@ -76,20 +76,13 @@ jobs:
           AWS_REGION: eu-west-2
           BAKEHOUSE_STACK_NAME: bakehouse-MountainCol
 
-
       - name: Configure AWS credentials using OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: eu-west-2
 
-      - name: Debug OIDC token
-        run: |
-          TOKEN=$(curl -s -H "Authorization: bearer ${{ secrets.GITHUB_TOKEN }}" \
-            "https://token.actions.githubusercontent.com?audience=sts.amazonaws.com" | jq -r .token)
-          echo "Token claims:"
-          echo $TOKEN | cut -d'.' -f2 | base64 -d | jq .
-          
+      
       - name: Check AWS identity
         run: aws sts get-caller-identity
 
